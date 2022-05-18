@@ -78,13 +78,13 @@ const updateProfile = (req, res) => {
 
 const updateAvatar = (req, res) => {
   const user = req.user._id;
-  const { link } = req.body;
-  if (!link) {
+  const { avatar } = req.body;
+  if (!avatar) {
     res.status(400).send({ message: 'Переданы некорректные данные при обновлении аватара.' });
     return;
   }
 
-  User.findByIdAndUpdate(user, { avatar: link }, {
+  User.findByIdAndUpdate(user, { avatar }, {
     new: true,
     runValidators: true,
   })
