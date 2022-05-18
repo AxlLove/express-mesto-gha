@@ -3,13 +3,21 @@ const Card = require('../models/card');
 const createCard = (req, res) => {
   const { name, link } = req.body;
   if (!name || !link) {
-    res.status(400).send({ message: 'Переданы некорректные данные при создании пользователя.' });
+    res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
     return;
   }
   const owner = req.user._id;
   Card.create({ name, link, owner })
     .then((card) => res.send({ data: card }))
-    .catch(() => res.status(500).send({ message: 'Серверная ошибка' }));
+    .catch(
+      (err) => {
+        if (err.name === 'ValidationError') {
+          res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
+          return;
+        }
+        res.status(500).send({ message: 'Серверная ошибка' });
+      },
+    );
 };
 
 const getCards = (_, res) => {
@@ -20,7 +28,6 @@ const getCards = (_, res) => {
 const deleteCard = (req, res) => {
   const { cardId } = req.params;
   Card.findByIdAndRemove(cardId)
-    .then((card) => res.send({ data: card }))
     .then((card) => {
       if (!card) {
         res.status(404).send({ message: 'Карточка с указанным _id не найдена.' });

@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const process = require('process');
 const userRouter = require('./routes/users');
 const cardRouter = require('./routes/cards');
 
@@ -10,6 +11,10 @@ const { PORT = 3000 } = process.env;
 app.use(express.json());
 
 mongoose.connect('mongodb://localhost:27017/mestodb');
+
+process.on('uncaughtException', (err, origin) => {
+  console.log(`${origin} ${err.name} c текстом ${err.message} не была обработана. Обратите внимание!`);
+});
 
 app.use((req, _, next) => {
   req.user = {

@@ -8,7 +8,15 @@ const createUser = (req, res) => {
   }
   User.create({ name, about, avatar })
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(500).send({ message: 'Серверная ошибка' }));
+    .catch(
+      (err) => {
+        if (err.name === 'ValidationError') {
+          res.status(400).send({ message: 'Переданы некорректные данные при создании пользователя.' });
+          return;
+        }
+        res.status(500).send({ message: 'Серверная ошибка' });
+      },
+    );
 };
 
 const getUser = (req, res) => {
