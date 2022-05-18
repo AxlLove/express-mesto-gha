@@ -24,7 +24,7 @@ app.use('/', userRouter);
 app.use('/', cardRouter);
 
 app.patch('*', (_, res) => {
-  res.send({ message: 'Неверный адресс' });
+  res.status(404).send({ message: 'Неверный адресс' });
 });
 
 app.listen(PORT, () => {
