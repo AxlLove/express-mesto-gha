@@ -12,10 +12,6 @@ app.use(express.json());
 
 mongoose.connect('mongodb://localhost:27017/mestodb');
 
-process.on('uncaughtException', (err, origin) => {
-  console.log(`${origin} ${err.name} c текстом ${err.message} не была обработана. Обратите внимание!`);
-});
-
 app.use((req, _, next) => {
   req.user = {
     _id: '6281187f96e4ee38a3ad1680',
@@ -26,6 +22,10 @@ app.use((req, _, next) => {
 
 app.use('/', userRouter);
 app.use('/', cardRouter);
+
+app.patch('*', (_, res) => {
+  res.send({ message: 'Неверный адресс' });
+});
 
 app.listen(PORT, () => {
   console.log(`Server has been started with PORT=${PORT}`);
