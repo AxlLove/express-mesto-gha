@@ -23,7 +23,7 @@ app.use((req, _, next) => {
 app.use('/', userRouter);
 app.use('/', cardRouter);
 
-app.patch('*', (_, res) => {
+app.all('*', (_, res) => {
   res.status(404).send({ message: 'Неверный адресс' });
 });
 

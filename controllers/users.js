@@ -67,9 +67,8 @@ const updateProfile = (req, res) => {
     })
     .catch(
       (err) => {
-        if (err.kind === 'ObjectId') {
-          res.status(400).send({ message: 'Не корректный _id' });
-          return;
+        if (err.name === 'ValidationError') {
+          res.status(400).send({ message: 'Некоретные данные' });
         }
         res.status(500).send({ message: 'Серверная ошибка' });
       },
@@ -97,9 +96,8 @@ const updateAvatar = (req, res) => {
     })
     .catch(
       (err) => {
-        if (err.kind === 'ObjectId') {
-          res.status(400).send({ message: 'Не корректный _id' });
-          return;
+        if (err.name === 'ValidationError') {
+          res.status(400).send({ message: 'Некоретные данные' });
         }
         res.status(500).send({ message: 'Серверная ошибка' });
       },
