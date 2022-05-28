@@ -10,6 +10,14 @@ const cardSchema = new mongoose.Schema({
   link: {
     type: String,
     required: true,
+    validate: {
+      // eslint-disable-next-line object-shorthand
+      validator: function (v) {
+        // eslint-disable-next-line no-useless-escape
+        return /https?:\/\/(www\.)?[-\w@:%\.\+~#=]{1,256}\.[a-z0-9()]{1,6}\b([-\w()@:%\.\+~#=//?&]*)/i.test(v);
+      },
+      message: (props) => `${props.value} is not a valid url!`,
+    },
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,

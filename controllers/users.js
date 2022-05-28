@@ -1,57 +1,75 @@
+const bcrypt = require('bcryptjs');
+const validator = require('validator');
+const { ConflictError } = require('../errors/ConflictError');
+const { NotFoundError } = require('../errors/NotFoundError');
+const { ValidationError } = require('../errors/ValidationError');
 const User = require('../models/user');
+const { generateToken } = require('../utils/jwt');
 
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  if (!name || !about || !avatar) {
-    res.status(400).send({ message: 'Переданы некорректные данные при создании пользователя.' });
-    return;
+const MONGO_DUPLICATE_KEY_CODE = 11000;
+
+const createUser = (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+  if (!email || !password) {
+    throw new NotFoundError('Не верный логин или пароль');
   }
-  User.create({ name, about, avatar })
+  const validEmail = validator.isEmail(email);
+  if (!validEmail) {
+    throw new ValidationError('Некоректный email');
+  }
+  bcrypt.hash(req.body.password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
     .then((user) => res.send({ data: user }))
     .catch(
       (err) => {
         if (err.name === 'ValidationError') {
-          res.status(400).send({ message: 'Переданы некорректные данные при создании пользователя.' });
-          return;
+          const validationError = new ValidationError('Переданы некорректные данные при создании пользователя');
+          return next(validationError);
         }
-        res.status(500).send({ message: 'Серверная ошибка' });
+        if (err.code === MONGO_DUPLICATE_KEY_CODE) {
+          const conflictError = new ConflictError('Такой email уже занят');
+          return next(conflictError);
+        }
+        next(err);
       },
     );
 };
 
-const getUser = (req, res) => {
+const getUser = (req, res, next) => {
   const id = req.params.userId;
   User.findById(id)
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'Пользователь по указанному _id не найден.' });
-        return;
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
       }
       res.send({ data: user });
     })
     .catch(
       (err) => {
         if (err.kind === 'ObjectId') {
-          res.status(400).send({ message: 'Не корректный _id' });
-          return;
+          const validationError = new ValidationError('Не корректный _id');
+          return next(validationError);
         }
-        res.status(500).send({ message: 'Серверная ошибка' });
+        next(err);
       },
     );
 };
 
-const getUsers = (_, res) => {
+const getUsers = (_, res, next) => {
   User.find({})
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(500).send({ message: 'Серверная ошибка' }));
+    .catch((err) => next(err));
 };
 //
-const updateProfile = (req, res) => {
+const updateProfile = (req, res, next) => {
   const user = req.user._id;
   const { name, about } = req.body;
   if (!name || !about) {
-    res.status(400).send({ message: 'Переданы некорректные данные при обновлении профиля.' });
-    return;
+    throw new NotFoundError('Переданы некорректные данные при обновлении профиля.');
   }
 
   User.findByIdAndUpdate(user, { name, about }, {
@@ -60,27 +78,26 @@ const updateProfile = (req, res) => {
   })
     .then((updatedUser) => {
       if (!updatedUser) {
-        res.status(404).send({ message: 'Пользователь по указанному _id не найден.' });
-        return;
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
       }
       res.send({ data: updatedUser });
     })
     .catch(
       (err) => {
         if (err.name === 'ValidationError') {
-          res.status(400).send({ message: 'Некоретные данные' });
+          const validationError = new ValidationError('Не корретно введены данные');
+          return next(validationError);
         }
-        res.status(500).send({ message: 'Серверная ошибка' });
+        next(err);
       },
     );
 };
 
-const updateAvatar = (req, res) => {
-  const user = req.user._id;
+const updateAvatar = (req, res, next) => {
+  const user = req.user.id;
   const { avatar } = req.body;
   if (!avatar) {
-    res.status(400).send({ message: 'Переданы некорректные данные при обновлении аватара.' });
-    return;
+    throw new NotFoundError('Переданы некорректные данные при обновлении аватара.');
   }
 
   User.findByIdAndUpdate(user, { avatar }, {
@@ -89,15 +106,67 @@ const updateAvatar = (req, res) => {
   })
     .then((updatedUser) => {
       if (!updatedUser) {
-        res.status(404).send({ message: 'Пользователь по указанному _id не найден.' });
-        return;
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
       }
       res.send({ data: updatedUser });
     })
     .catch(
       (err) => {
         if (err.name === 'ValidationError') {
-          res.status(400).send({ message: 'Некоретные данные' });
+          const validationError = new ValidationError('Не корретно введены данные');
+          return next(validationError);
+        }
+        next(err);
+      },
+    );
+};
+
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    throw new NotFoundError('Не верный логин или пароль');
+  }
+  const validEmail = validator.isEmail(email);
+  if (!validEmail) {
+    throw new ValidationError('Некоректный email');
+  }
+  User.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Неправильные почта или пароль');
+      }
+      return {
+        isPasswordValid: bcrypt.compare(password, user.password),
+        user,
+      };
+    })
+    .then(({ isPasswordValid, user }) => {
+      if (!isPasswordValid) {
+        throw new NotFoundError('Неправильные почта или пароль');
+      }
+      return generateToken({ id: user._id });
+    })
+    .then((token) => res.status(200).send({ token }))
+    .catch(
+      (err) => {
+        next(err);
+      },
+    );
+};
+const getCurrentUser = (req, res, next) => {
+  const { id } = req.user;
+  User.findById(id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      }
+      res.send({ data: user });
+    })
+    .catch(
+      (err) => {
+        if (err.kind === 'ObjectId') {
+          const validationError = new ValidationError('Не корректный _id');
+          return next(validationError);
         }
         res.status(500).send({ message: 'Серверная ошибка' });
       },
@@ -110,4 +179,7 @@ module.exports = {
   getUsers,
   updateProfile,
   updateAvatar,
+  login,
+  getCurrentUser,
 };
+// TODO обработать логин валидировать имейл
