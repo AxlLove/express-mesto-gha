@@ -3,6 +3,7 @@ const validator = require('validator');
 const { ConflictError } = require('../errors/ConflictError');
 const { NotFoundError } = require('../errors/NotFoundError');
 const { ValidationError } = require('../errors/ValidationError');
+const { UnauthorizedError } = require('../errors/UnauthorizedError');
 const User = require('../models/user');
 const { generateToken } = require('../utils/jwt');
 
@@ -23,7 +24,9 @@ const createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.send({ data: user }))
+    .then(() => {
+      res.send('Пользователь создан!');
+    })
     .catch(
       (err) => {
         if (err.name === 'ValidationError') {
@@ -64,7 +67,7 @@ const getUsers = (_, res, next) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => next(err));
 };
-//
+
 const updateProfile = (req, res, next) => {
   const user = req.user._id;
   const { name, about } = req.body;
@@ -124,7 +127,7 @@ const updateAvatar = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    throw new NotFoundError('Не верный логин или пароль');
+    throw new UnauthorizedError('Не верный логин или пароль');
   }
   const validEmail = validator.isEmail(email);
   if (!validEmail) {
