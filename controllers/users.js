@@ -24,8 +24,10 @@ const createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then(() => {
-      res.send('Пользователь создан!');
+    .then((user) => {
+      res.send({
+        name: user.name, about: user.about, avatar: user.avatar, email: user.email, _id: user.id,
+      });
     })
     .catch(
       (err) => {
@@ -136,7 +138,7 @@ const login = (req, res, next) => {
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        throw new NotFoundError('Неправильные почта или пароль');
+        throw new UnauthorizedError('Неправильные почта или пароль');
       }
       return {
         isPasswordValid: bcrypt.compare(password, user.password),
