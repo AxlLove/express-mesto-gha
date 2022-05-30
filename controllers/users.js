@@ -13,14 +13,11 @@ const createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
-  if (!email || !password) {
-    throw new NotFoundError('Не верный логин или пароль');
-  }
   const validEmail = validator.isEmail(email);
   if (!validEmail) {
     throw new ValidationError('Некоректный email');
   }
-  bcrypt.hash(req.body.password, 10)
+  bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
@@ -73,9 +70,6 @@ const getUsers = (_, res, next) => {
 const updateProfile = (req, res, next) => {
   const user = req.user.id;
   const { name, about } = req.body;
-  if (!name || !about) {
-    throw new NotFoundError('Переданы некорректные данные при обновлении профиля.');
-  }
   User.findByIdAndUpdate(user, { name, about }, {
     new: true,
     runValidators: true,
@@ -100,9 +94,6 @@ const updateProfile = (req, res, next) => {
 const updateAvatar = (req, res, next) => {
   const user = req.user.id;
   const { avatar } = req.body;
-  if (!avatar) {
-    throw new NotFoundError('Переданы некорректные данные при обновлении аватара.');
-  }
 
   User.findByIdAndUpdate(user, { avatar }, {
     new: true,
@@ -128,7 +119,7 @@ const updateAvatar = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    throw new UnauthorizedError('Не верный логин или пароль');
+    throw new ValidationError('Не верный логин или пароль');
   }
   const validEmail = validator.isEmail(email);
   if (!validEmail) {
@@ -142,7 +133,7 @@ const login = (req, res, next) => {
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            throw new NotFoundError('Неправильные почта или пароль');
+            throw new UnauthorizedError('Неправильные почта или пароль');
           }
           return user;
         });
@@ -170,7 +161,7 @@ const getCurrentUser = (req, res, next) => {
           const validationError = new ValidationError('Не корректный _id');
           return next(validationError);
         }
-        res.status(500).send({ message: 'Серверная ошибка' });
+        next(err);
       },
     );
 };

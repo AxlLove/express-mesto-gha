@@ -3,12 +3,15 @@ const mongoose = require('mongoose');
 const process = require('process');
 const { errors } = require('celebrate');
 const { celebrate, Joi } = require('celebrate');
+const helmet = require('helmet');
 const userRouter = require('./routes/users');
 const cardRouter = require('./routes/cards');
 const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 require('dotenv').config();
 const { urlRegExp } = require('./utils/regExp');
+const { NotFoundError } = require('./errors/NotFoundError');
+const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
@@ -18,16 +21,17 @@ app.use(express.json());
 
 mongoose.connect('mongodb://localhost:27017/mestodb');
 
+app.use(helmet());
 app.post('/signin', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
-    password: Joi.string().required().min(2).max(30),
+    password: Joi.string().required(),
   }),
 }), login);
 app.post('/signup', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
-    password: Joi.string().required().min(2).max(30),
+    password: Joi.string().required(),
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
     avatar: Joi.string().pattern(urlRegExp),
@@ -37,24 +41,13 @@ app.use(auth);
 app.use('/', userRouter);
 app.use('/', cardRouter);
 
-app.all('*', (_, res) => {
-  res.status(404).send({ message: 'Неверный адресс' });
+app.all('*', (_req, _res) => {
+  throw new NotFoundError('Не существующий адрес');
 });
 
 app.use(errors());
 
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, _) => {
-  const { statusCode = 500, message } = err;
-
-  res
-    .status(statusCode)
-    .send({
-      message: statusCode === 500
-        ? 'На сервере произошла ошибка'
-        : message,
-    });
-});
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server has been started with PORT=${PORT}`);

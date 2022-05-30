@@ -38,14 +38,10 @@ const deleteCard = (req, res, next) => {
         throw new ForbiddenError('У вас нет прав на удаление карточки');
       }
       return cardId;
-    }).then((Id) => {
-      if (Id) {
-        Card.findByIdAndRemove(Id)
-          .then((card) => {
-            res.send({ data: card });
-          });
-      }
-    }).catch(
+    }).then((Id) => Card.findByIdAndRemove(Id)
+      .then((card) => {
+        res.send({ data: card });
+      })).catch(
       (err) => {
         if (err.kind === 'ObjectId') {
           const validationError = new ValidationError('Не корректный _id');
