@@ -71,12 +71,11 @@ const getUsers = (_, res, next) => {
 };
 
 const updateProfile = (req, res, next) => {
-  const user = req.user._id;
+  const user = req.user.id;
   const { name, about } = req.body;
   if (!name || !about) {
     throw new NotFoundError('Переданы некорректные данные при обновлении профиля.');
   }
-
   User.findByIdAndUpdate(user, { name, about }, {
     new: true,
     runValidators: true,
