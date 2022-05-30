@@ -5,11 +5,7 @@ const {
 } = require('../controllers/users');
 const { urlRegExp } = require('../utils/regExp');
 
-router.get('/users/me', celebrate({
-  headers: Joi.object().keys({
-    Authorization: Joi.string().token(),
-  }),
-}), getCurrentUser);
+router.get('/users/me', getCurrentUser);
 
 router.get('/users', getUsers);
 
