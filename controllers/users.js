@@ -140,17 +140,15 @@ const login = (req, res, next) => {
       if (!user) {
         throw new UnauthorizedError('Неправильные почта или пароль');
       }
-      return {
-        isPasswordValid: bcrypt.compare(password, user.password),
-        user,
-      };
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            throw new NotFoundError('Неправильные почта или пароль');
+          }
+          return user;
+        });
     })
-    .then(({ isPasswordValid, user }) => {
-      if (!isPasswordValid) {
-        throw new NotFoundError('Неправильные почта или пароль');
-      }
-      return generateToken({ id: user._id });
-    })
+    .then((user) => generateToken({ id: user._id }))
     .then((token) => res.status(200).send({ token }))
     .catch(
       (err) => {
@@ -187,4 +185,3 @@ module.exports = {
   login,
   getCurrentUser,
 };
-// TODO обработать логин валидировать имейл

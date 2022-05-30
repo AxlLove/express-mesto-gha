@@ -3,6 +3,7 @@ const { celebrate, Joi } = require('celebrate');
 const {
   getUser, getUsers, updateProfile, updateAvatar, getCurrentUser,
 } = require('../controllers/users');
+const { urlRegExp } = require('../utils/regExp');
 
 router.get('/users/me', celebrate({
   headers: Joi.object().keys({
@@ -27,7 +28,7 @@ router.patch('/users/me', celebrate({
 
 router.patch('/users/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().uri(),
+    avatar: Joi.string().pattern(urlRegExp),
   }),
 }), updateAvatar);
 

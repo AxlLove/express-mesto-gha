@@ -8,6 +8,7 @@ const cardRouter = require('./routes/cards');
 const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 require('dotenv').config();
+const { urlRegExp } = require('./utils/regExp');
 
 const app = express();
 
@@ -29,7 +30,7 @@ app.post('/signup', celebrate({
     password: Joi.string().required().min(2).max(30),
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
+    avatar: Joi.string().pattern(urlRegExp),
   }),
 }), createUser);
 app.use(auth);
