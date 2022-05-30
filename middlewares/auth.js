@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const { SECRET_KEY } = process.env;
+const SECRET_KEY = '1609562';
 
 module.exports = (req, res, next) => {
   const { authorization } = req.headers;
